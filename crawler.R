@@ -8,6 +8,8 @@ fetch_todas_partes <- function(url) {
   library(rvest)
   library(httr)
   
+  print(url)
+  
   id <- urltools::param_get(url, "incidente")
   
   url_partes <- paste0("http://portal.stf.jus.br/processos/abaPartes.asp?incidente=", id)
@@ -45,6 +47,8 @@ fetch_decisoes <- function(url) {
   library(tidyverse)
   library(rvest)
   library(httr)
+  
+  print(url)
   
   id <- urltools::param_get(url, "incidente")
   
