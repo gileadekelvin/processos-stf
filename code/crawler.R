@@ -1,13 +1,14 @@
+library(tidyverse)
+library(rvest)
+library(httr)
+library(urltools)
+
 #' @title Recupera todas as partes envolvidas em Ações movidas no STF
 #' @description A partir da URL de uma ação movida no STF recupera dados das partes
 #' @return Dataframe contendo informações das partes envolvidas: nome da parte, nome
 #' @examples
 #' partes <- fetch_todas_partes(url)
 fetch_todas_partes <- function(url) {
-  library(tidyverse)
-  library(rvest)
-  library(httr)
-  
   print(url)
   
   id <- urltools::param_get(url, "incidente")
@@ -44,10 +45,6 @@ fetch_todas_partes <- function(url) {
 #' @examples
 #' deputados <- fetch_decisoes(56)
 fetch_decisoes <- function(url) {
-  library(tidyverse)
-  library(rvest)
-  library(httr)
-  
   print(url)
   
   id <- urltools::param_get(url, "incidente")
@@ -83,4 +80,45 @@ fetch_decisoes <- function(url) {
   decisoes_df <- do.call(rbind.data.frame, decisoes)
 
   return(decisoes_df)
+}
+
+#' @title Recupera detalhes de relatores em Ações movidas no STF
+#' @description A partir da URL de uma ação movida no STF recupera detalhes de relatores
+#' @return Dataframe contendo informações dos relatores envolvidos
+#' @examples
+#' detalhes <- fetch_detalhes(url)
+fetch_detalhes <- function(url) {
+  print(url)
+  
+  id <- urltools::param_get(url, "incidente")
+  
+  url_detalhes <- paste0("http://portal.stf.jus.br/processos/detalhe.asp?incidente=", id)
+  
+  page <- url_detalhes %>% 
+    httr::GET() %>%
+    xml2::read_html()
+
+  resumo_detalhes <- page %>% 
+    html_nodes("div.processo-dados.p-l-16") %>% 
+    map(function(x) {
+      # print(x %>% html_nodes("#descricao-procedencia") %>% html_nodes("#descricao-procedencia"))
+      texto <- x %>%
+        html_text() %>%
+        str_split(":") %>%
+        magrittr::extract2(1) %>% 
+        trimws(which = "both")
+      
+      if (texto[1] != "Origem") {
+        info <- tibble(papel = texto[1], nome_papel = texto[2]) 
+      } else {
+        info <- tibble()
+      }
+      
+      return(info)
+    })
+  
+  detalhes <- do.call(rbind.data.frame, resumo_detalhes) %>% 
+    mutate(nome_papel = str_replace(nome_papel, "&nbsp", ""))
+  
+  return(detalhes)
 }
